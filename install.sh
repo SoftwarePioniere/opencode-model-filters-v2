@@ -31,6 +31,16 @@ if [ -e "$INSTALL_DIR" ]; then
 fi
 mv "$tmp_dir/repo" "$INSTALL_DIR"
 
+if [ -n "${OPENCODE_CONFIG:-}" ]; then
+  CONFIG_PATH="$OPENCODE_CONFIG"
+elif [ -f "$CONFIG_HOME/opencode/opencode.json" ]; then
+  CONFIG_PATH="$CONFIG_HOME/opencode/opencode.json"
+elif [ -f "$CONFIG_HOME/opencode/opencode.jsonc" ]; then
+  CONFIG_PATH="$CONFIG_HOME/opencode/opencode.jsonc"
+else
+  CONFIG_PATH="$CONFIG_HOME/opencode/opencode.json"
+fi
+
 if [ ! -f "$CONFIG_PATH" ]; then
   printf 'Installed plugin at %s\n' "$INSTALL_DIR"
   printf 'Configuration file not found: %s\n' "$CONFIG_PATH"
