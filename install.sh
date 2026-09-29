@@ -42,52 +42,48 @@ CONFIG_PATH="$CONFIG_PATH" INSTALL_DIR="$INSTALL_DIR" INSTALL_DIR2="$INSTALL_DIR
 import fs from "node:fs";
 
 const configPath = process.env.CONFIG_PATH;
-const installDir = process.env.INSTALL_DIR;
 const installDir2 = process.env.INSTALL_DIR2;
-const pluginEntry = JSON.stringify(`${installDir2}`);
-let text = fs.readFileSync(configPath, "utf8");
+const pluginEntry = installDir2;
 
-if (text.includes(pluginEntry)) {
+let text;
+try{
+  text = fs.readFileSync(configPath, "utf8");
+} catch (error) {
+  try{
+    text = fs.readFileSync(configPath+"c", "utf8");
+  } catch (error2){
+    throw new Error(`Could not read ${configPath} as JSON nor JSONc: ${error.message}`)
+  }
+}
+
+let config;
+try {
+  config = JSON.parse(text);
+} catch (error) {
+  throw new Error(`Could not parse ${configPath} as JSON: ${error.message}`);
+}
+
+if (!Array.isArray(config.plugin)) {
+  config.plugin = [];
+}
+
+if (config.plugin.includes(pluginEntry)) {
   console.log(`Plugin already configured: ${pluginEntry}`);
   process.exit(0);
 }
 
-const match = /["']plugin["']\s*:\s*\[/.exec(text);
-if (!match) {
-  throw new Error(`Could not find a plugin array in ${configPath}. Insert "plugin" attribute manualy`);
-}
+config.plugin.push(pluginEntry);
 
-const open = text.indexOf("[", match.index);
-let close = -1;
-let depth = 0;
-let quote = null;
-let escaped = false;
-for (let i = open; i < text.length; i += 1) {
-  const ch = text[i];
-  if (quote) {
-    if (escaped) escaped = false;
-    else if (ch === "\\") escaped = true;
-    else if (ch === quote) quote = null;
-    continue;
-  }
-  if (ch === '"' || ch === "'") { quote = ch; continue; }
-  if (ch === "[") depth += 1;
-  if (ch === "]" && --depth === 0) { close = i; break; }
-}
-if (close < 0) throw new Error(`Could not parse the plugin array in ${configPath}`);
-
-const existing = text.slice(open + 1, close);
-const trimmed = existing.replace(/\s+$/, "");
-const trailingWhitespace = existing.slice(trimmed.length);
-const needsComma = trimmed.length > 0 && !trimmed.endsWith(",");
-const itemIndent = /\n([ \t]*)[^\s]/.exec(existing)?.[1] ?? "  ";
-const closeIndent = /^([ \t]*)/.exec(trailingWhitespace.split("\n").pop() ?? "")?.[1] ?? "";
-const updated = `${trimmed}${needsComma ? "," : ""}\n${itemIndent}${pluginEntry}${trailingWhitespace || `\n${closeIndent}`}`;
-text = `${text.slice(0, open + 1)}${updated}${text.slice(close)}`;
 fs.copyFileSync(configPath, `${configPath}.backup.${Date.now()}`);
-fs.writeFileSync(configPath, text);
+
+fs.writeFileSync(
+  configPath,
+  `${JSON.stringify(config, null, 2)}\n`
+);
+
 console.log(`Added plugin entry to ${configPath}`);
 NODE
+
 
 printf 'Installed OpenCode Model Filters V2 at %s\n' "$INSTALL_DIR"
 if [ -n "$backup_path" ]; then
