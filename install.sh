@@ -31,6 +31,16 @@ if [ -e "$INSTALL_DIR" ]; then
 fi
 mv "$tmp_dir/repo" "$INSTALL_DIR"
 
+if [ -n "${OPENCODE_CONFIG:-}" ]; then
+  CONFIG_PATH="$OPENCODE_CONFIG"
+elif [ -f "$CONFIG_HOME/opencode/opencode.json" ]; then
+  CONFIG_PATH="$CONFIG_HOME/opencode/opencode.json"
+elif [ -f "$CONFIG_HOME/opencode/opencode.jsonc" ]; then
+  CONFIG_PATH="$CONFIG_HOME/opencode/opencode.jsonc"
+else
+  CONFIG_PATH="$CONFIG_HOME/opencode/opencode.json"
+fi
+
 if [ ! -f "$CONFIG_PATH" ]; then
   printf 'Installed plugin at %s\n' "$INSTALL_DIR"
   printf 'Configuration file not found: %s\n' "$CONFIG_PATH"
@@ -42,21 +52,100 @@ CONFIG_PATH="$CONFIG_PATH" INSTALL_DIR="$INSTALL_DIR" INSTALL_DIR2="$INSTALL_DIR
 import fs from "node:fs";
 
 const configPath = process.env.CONFIG_PATH;
-const installDir2 = process.env.INSTALL_DIR2;
-const pluginEntry = installDir2;
+const pluginEntry = process.env.INSTALL_DIR2;
+
+/**
+ * Remove // and /* *\/ comments from JSONC while preserving
+ * strings and escaped characters inside strings.
+ */
+function stripJsonComments(text) {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (inLineComment) {
+      if (char === "\n" || char === "\r") {
+        inLineComment = false;
+        result += char;
+      } else {
+        result += " ";
+      }
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === "*" && next === "/") {
+        inBlockComment = false;
+        result += "  ";
+        i++;
+      } else if (char === "\n" || char === "\r") {
+        result += char;
+      } else {
+        result += " ";
+      }
+      continue;
+    }
+
+    if (inString) {
+      result += char;
+
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      result += char;
+    } else if (char === "/" && next === "/") {
+      inLineComment = true;
+      result += "  ";
+      i++;
+    } else if (char === "/" && next === "*") {
+      inBlockComment = true;
+      result += "  ";
+      i++;
+    } else {
+      result += char;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Remove trailing commas before } or ].
+ */
+function stripTrailingCommas(text) {
+  return text.replace(/,\s*([}\]])/g, "$1");
+}
 
 let text;
-try{
+try {
   text = fs.readFileSync(configPath, "utf8");
 } catch (error) {
-  throw new Error('Currently to stupid to parse jsonc files because of comments etc... Change the config file to .json format')
+  throw new Error(`Could not read ${configPath}: ${error.message}`);
 }
 
 let config;
+
 try {
-  config = JSON.parse(text);
+  const json = stripTrailingCommas(stripJsonComments(text));
+  config = JSON.parse(json);
 } catch (error) {
-  throw new Error(`Could not parse ${configPath} as JSON: ${error.message}`);
+  throw new Error(`Could not parse ${configPath} as JSON/JSONC: ${error.message}`);
 }
 
 if (!Array.isArray(config.plugin)) {
@@ -66,9 +155,9 @@ if (!Array.isArray(config.plugin)) {
 if (config.plugin.includes(pluginEntry)) {
   console.log(`Plugin already configured: ${pluginEntry}`);
   process.exit(0);
+} else {
+  config.plugin = [...config.plugin, pluginEntry];
 }
-
-config.plugin.push(pluginEntry);
 
 fs.copyFileSync(configPath, `${configPath}.backup.${Date.now()}`);
 
@@ -79,6 +168,7 @@ fs.writeFileSync(
 
 console.log(`Added plugin entry to ${configPath}`);
 NODE
+
 
 
 printf 'Installed OpenCode Model Filters V2 at %s\n' "$INSTALL_DIR"
