@@ -19,7 +19,7 @@ The plugin applies the filters through OpenCode V2's model transform API, after 
 On Linux and macOS, run this command in a terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/GaboEI/opencode-model-filters-v2/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/SoftwarePioniere/opencode-model-filters-v2/main/install.sh | bash
 ```
 
 The installer clones the latest version into `~/.config/opencode/plugins/opencode-model-filters-v2`, adds the plugin to the normal OpenCode configuration, and creates timestamped backups before changing existing files. It does not modify the OpenCode executable. Restart OpenCode after it completes.
@@ -31,7 +31,7 @@ To inspect the installer before running it, download it first and read `install.
 In PowerShell, run:
 
 ```powershell
-irm https://raw.githubusercontent.com/GaboEI/opencode-model-filters-v2/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/SoftwarePioniere/opencode-model-filters-v2/main/install.ps1 | iex
 ```
 
 The PowerShell installer performs the same backup, installation, and configuration steps. It uses the standard OpenCode configuration location under your user profile, or the path provided by `OPENCODE_CONFIG`.

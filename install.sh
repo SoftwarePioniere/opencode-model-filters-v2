@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_URL="${OPENCODE_MODEL_FILTERS_REPO:-https://github.com/GaboEI/opencode-model-filters-v2.git}"
+REPO_URL="${OPENCODE_MODEL_FILTERS_REPO:-https://github.com/SoftwarePioniere/opencode-model-filters-v2.git}"
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 CONFIG_PATH="${OPENCODE_CONFIG:-$CONFIG_HOME/opencode/opencode.json}"
 INSTALL_DIR="${OPENCODE_MODEL_FILTERS_DIR:-$CONFIG_HOME/opencode/plugins/opencode-model-filters-v2}"
+CONFIG_HOME2="${XDG_CONFIG_HOME:-~/.config}"
+INSTALL_DIR2="${OPENCODE_MODEL_FILTERS_DIR:-$CONFIG_HOME2/opencode/plugins/opencode-model-filters-v2}"
 
 command -v git >/dev/null 2>&1 || {
   printf '%s\n' 'Error: git is required to install this plugin.' >&2
@@ -36,12 +38,13 @@ if [ ! -f "$CONFIG_PATH" ]; then
   exit 0
 fi
 
-CONFIG_PATH="$CONFIG_PATH" INSTALL_DIR="$INSTALL_DIR" node --input-type=module <<'NODE'
+CONFIG_PATH="$CONFIG_PATH" INSTALL_DIR="$INSTALL_DIR" INSTALL_DIR2="$INSTALL_DIR2" node --input-type=module <<'NODE'
 import fs from "node:fs";
 
 const configPath = process.env.CONFIG_PATH;
 const installDir = process.env.INSTALL_DIR;
-const pluginEntry = JSON.stringify(`${installDir}/src/index.js`);
+const installDir2 = process.env.INSTALL_DIR2;
+const pluginEntry = JSON.stringify(`${installDir2}`);
 let text = fs.readFileSync(configPath, "utf8");
 
 if (text.includes(pluginEntry)) {
@@ -51,7 +54,7 @@ if (text.includes(pluginEntry)) {
 
 const match = /["']plugin["']\s*:\s*\[/.exec(text);
 if (!match) {
-  throw new Error(`Could not find a plugin array in ${configPath}`);
+  throw new Error(`Could not find a plugin array in ${configPath}. Insert "plugin" attribute manualy`);
 }
 
 const open = text.indexOf("[", match.index);
