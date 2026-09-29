@@ -31,16 +31,6 @@ if [ -e "$INSTALL_DIR" ]; then
 fi
 mv "$tmp_dir/repo" "$INSTALL_DIR"
 
-if [ -n "${OPENCODE_CONFIG:-}" ]; then
-  CONFIG_PATH="$OPENCODE_CONFIG"
-elif [ -f "$CONFIG_HOME/opencode/opencode.json" ]; then
-  CONFIG_PATH="$CONFIG_HOME/opencode/opencode.json"
-elif [ -f "$CONFIG_HOME/opencode/opencode.jsonc" ]; then
-  CONFIG_PATH="$CONFIG_HOME/opencode/opencode.jsonc"
-else
-  CONFIG_PATH="$CONFIG_HOME/opencode/opencode.json"
-fi
-
 if [ ! -f "$CONFIG_PATH" ]; then
   printf 'Installed plugin at %s\n' "$INSTALL_DIR"
   printf 'Configuration file not found: %s\n' "$CONFIG_PATH"
@@ -59,11 +49,7 @@ let text;
 try{
   text = fs.readFileSync(configPath, "utf8");
 } catch (error) {
-  try{
-    text = fs.readFileSync(configPath+"c", "utf8");
-  } catch (error2){
-    throw new Error(`Could not read ${configPath} as JSON nor JSONc: ${error.message}`)
-  }
+  throw new Error('Currently to stupid to parse jsonc files because of comments etc... Change the config file to .json format')
 }
 
 let config;
